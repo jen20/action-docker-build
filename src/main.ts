@@ -1,0 +1,163 @@
+import * as core from "@actions/core";
+import {exec} from "@actions/exec";
+import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
+import moment = require("moment");
+import * as child_process from "child_process";
+
+interface Config {
+    dockerfile: string,
+    repository: string,
+    username: string,
+    password: string,
+    registry: string,
+    tagLatest: boolean,
+    tagSnapshot: boolean,
+    additionalTags: string[]
+}
+
+function isNullOrWhitespace(input: string) {
+    if (typeof input === 'undefined' || input == null) {
+        return true;
+    }
+
+    return input.replace(/\s/g, '').length < 1;
+}
+
+async function find_commit_sha(path: string): Promise<string> {
+    let output = "";
+    const options = {
+        cwd: path,
+        listeners: {
+            stdline: (data) => output += data,
+        }
+    };
+
+    await exec("git", ["rev-parse", "--short", `HEAD`], options);
+
+    return output.trim();
+}
+
+function validatePlatform(): boolean {
+    if (os.platform() !== "linux") {
+        core.setFailed("Unsupported operating system - this action only runs on Linux");
+        return false;
+    }
+
+    return true;
+}
+
+function readAndValidateConfig(): Config | undefined {
+    const config: Config = {
+        dockerfile: core.getInput("dockerfile"),
+        repository: core.getInput("repository"),
+        registry: core.getInput("registry"),
+        username: core.getInput("username"),
+        password: core.getInput("password"),
+        tagLatest: core.getInput("tag-latest") == "true",
+        tagSnapshot: core.getInput("tag-snapshot") == "true",
+        additionalTags: core.getInput("additional-tags")
+            .split(",")
+            .map(x => x.trim())
+            .filter(x => !isNullOrWhitespace(x)),
+    };
+
+    if (config.repository == "") {
+        core.setFailed("Repository is required.");
+        return;
+    }
+
+    if (config.username == "") {
+        core.setFailed("Username is required.");
+        return;
+    }
+
+    if (config.password == "") {
+        core.setFailed("Password is required.");
+        return;
+    }
+
+    if (!fs.existsSync(config.dockerfile)) {
+        core.setFailed(`The specified Dockerfile (${config.dockerfile}) does not exist.`);
+        return;
+    }
+
+    if (!config.tagLatest && !config.tagSnapshot && config.additionalTags.length == 0) {
+        core.setFailed(`One of tag-snapshot, tag-latest or additional-tags must be set.`);
+        return;
+    }
+
+    return config;
+}
+
+function dockerLogin(config: Config) {
+    const command = `docker login -u ${config.username} --password-stdin ${config.registry}`;
+    try {
+        child_process.execSync(command, {input: config.password});
+    } catch (error) {
+        core.setFailed(error.message);
+        throw error;
+    }
+}
+
+async function run() {
+    try {
+        if (!validatePlatform()) {
+            return;
+        }
+
+        const config = readAndValidateConfig();
+        if (config == undefined) {
+            return;
+        }
+
+        core.info("Logging into Docker registry");
+        dockerLogin(config);
+
+        core.info("Constructing `docker build` command line");
+        let buildParams = ["build", "-f", path.basename(config.dockerfile)];
+        if (config.tagLatest) {
+            buildParams.push("-t", `${config.repository}:latest`);
+        }
+
+        let snapshotId = "";
+        if (config.tagSnapshot) {
+            const snapshotDate = moment().format("YYYYMMDD-HHMMSS");
+            const commitSHA = await find_commit_sha(path.dirname(config.dockerfile));
+            snapshotId = `${snapshotDate}-${commitSHA}`;
+
+            buildParams.push("-t", `${config.repository}:${snapshotId}`);
+        }
+
+        for (const tag of config.additionalTags) {
+            buildParams.push("-t", `${config.repository}:${tag}`);
+        }
+
+        core.info("Building Docker Image...");
+        buildParams.push(".");
+        const inDockerfileDirOptions = {
+            cwd: path.dirname(config.dockerfile),
+        };
+        await exec("docker", buildParams, inDockerfileDirOptions);
+
+        if (config.tagLatest) {
+            core.info(`Pushing '${config.repository}:latest' to registry...`);
+            await exec("docker", ["push", `${config.repository}:latest`]);
+        }
+
+        if (config.tagSnapshot) {
+            core.info(`Pushing '${config.repository}:${snapshotId}' to registry...`);
+            await exec("docker", ["push", `${config.repository}:${snapshotId}`]);
+        }
+
+        for (const tag of config.additionalTags) {
+            core.info(`Pushing '${config.repository}:${tag}' to registry...`);
+            await exec("docker", ["push", `${config.repository}:${tag}`]);
+        }
+    } catch (error) {
+        core.setFailed(error.message);
+    }
+}
+
+run();

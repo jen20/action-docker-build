@@ -1,0 +1,41 @@
+name: "Test Docker Build/Push Action"
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test-no-additional-tags:
+    name: Test with no additional tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - run: npm ci
+      - run: npm run build
+      - uses: ./
+        with:
+          dockerfile: testdata/Dockerfile
+          repository: jen20/test-action-docker-build
+          username: jen20
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          tag-latest: true
+          tag-snapshot: true
+
+  test-additional-tags:
+    name: Test with additional tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - run: npm ci
+      - run: npm run build
+      - uses: ./
+        with:
+          dockerfile: testdata/Dockerfile
+          repository: jen20/test-action-docker-build-additional-tags
+          username: jen20
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          tag-latest: true
+          additional-tags: firstTag, secondTag

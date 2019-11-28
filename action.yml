@@ -1,0 +1,36 @@
+name: Build Docker Image
+description: Build, push and tag Docker containers in GitHub Actions
+author: 'James Nugent <james@jen20.com>'
+inputs:
+  dockerfile:
+    description: Path of the Dockerfile to build relative to the repository root
+    required: false
+    default: Dockerfile
+  registry:
+    description: Registry address to which to push the container image
+    required: false
+  repository:
+    description: Name of the repository in the registry.
+    required: true
+  username:
+    description: Username with which to log in to the container registry
+    required: true
+  password:
+    description: Password with which to log in to the container registry
+    required: true
+  tag-latest:
+    description: Whether or not to tag the container image as "latest" in addition to other tags specified.
+    required: false
+    default: false
+  tag-snapshot:
+    description: |
+      Whether or not to create a snapshot tag containing the build timestamp and commit SHA in addition to
+      other tags specified.
+    required: false
+    default: false
+  additional-tags:
+    description: Comma-separated list of tags to apply to the container image
+    required: false
+runs:
+  using: 'node12'
+  main: 'lib/main.js'
