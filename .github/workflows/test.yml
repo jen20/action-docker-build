@@ -39,3 +39,20 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           tag-latest: true
           additional-tags: firstTag, secondTag
+
+  test-buildkit:
+    name: Test with buildkit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - run: npm ci
+      - run: npm run build
+      - uses: ./
+        with:
+          dockerfile: testdata/Dockerfile.buildkit
+          buildkit: true
+          repository: jen20/test-action-docker-build-additional-tags
+          username: jen20
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          tag-latest: true

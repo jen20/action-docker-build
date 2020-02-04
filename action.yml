@@ -6,6 +6,10 @@ inputs:
     description: Path of the Dockerfile to build relative to the repository root
     required: false
     default: Dockerfile
+  buildkit:
+    description: Whether or not to enable Docker BuildKit
+    required: false
+    default: 'false'
   registry:
     description: Registry address to which to push the container image
     required: false
@@ -21,13 +25,13 @@ inputs:
   tag-latest:
     description: Whether or not to tag the container image as "latest" in addition to other tags specified.
     required: false
-    default: false
+    default: 'false'
   tag-snapshot:
     description: |
       Whether or not to create a snapshot tag containing the build timestamp and commit SHA in addition to
       other tags specified.
     required: false
-    default: false
+    default: 'false'
   additional-tags:
     description: Comma-separated list of tags to apply to the container image
     required: false
