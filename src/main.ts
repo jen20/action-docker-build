@@ -8,6 +8,7 @@ import * as child_process from "child_process";
 
 interface Config {
     dockerfile: string,
+    buildkit: boolean,
     repository: string,
     username: string,
     password: string,
@@ -51,6 +52,7 @@ function validatePlatform(): boolean {
 function readAndValidateConfig(): Config | undefined {
     const config: Config = {
         dockerfile: core.getInput("dockerfile"),
+        buildkit: core.getInput("buildkit") == "true",
         repository: core.getInput("repository"),
         registry: core.getInput("registry"),
         username: core.getInput("username"),
@@ -134,12 +136,18 @@ async function run() {
             buildParams.push("-t", `${config.repository}:${tag}`);
         }
 
+        const env = {};
+        if (config.buildkit) {
+            env["DOCKER_BUILDKIT"] = "true";
+        }
+
         core.info("Building Docker Image...");
         buildParams.push(".");
-        const inDockerfileDirOptions = {
+        const dockerOptions = {
             cwd: path.dirname(config.dockerfile),
+            env: env,
         };
-        await exec("docker", buildParams, inDockerfileDirOptions);
+        await exec("docker", buildParams, dockerOptions);
 
         if (config.tagLatest) {
             core.info(`Pushing '${config.repository}:latest' to registry...`);
