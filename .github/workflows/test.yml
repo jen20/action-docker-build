@@ -38,7 +38,8 @@ jobs:
           username: jen20
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           tag-latest: true
-          additional-tags: firstTag, secondTag
+          additional-tags: firstTag, secondTag, refs/tags/v1.0.0
+          strip-refs-tags: true
 
   test-buildkit:
     name: Test with buildkit
