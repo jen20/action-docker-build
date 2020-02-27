@@ -6,6 +6,8 @@ import * as path from "path";
 import moment = require("moment");
 import * as child_process from "child_process";
 
+const refsTagsPrefix = "refs/tags/";
+
 interface Config {
     dockerfile: string,
     buildkit: boolean,
@@ -16,6 +18,7 @@ interface Config {
     tagLatest: boolean,
     tagSnapshot: boolean,
     additionalTags: string[]
+    stripRefsTags: boolean
 }
 
 function isNullOrWhitespace(input: string) {
@@ -63,6 +66,7 @@ function readAndValidateConfig(): Config | undefined {
             .split(",")
             .map(x => x.trim())
             .filter(x => !isNullOrWhitespace(x)),
+        stripRefsTags: core.getInput("strip-refs-tags") != "false",
     };
 
     if (config.repository == "") {
@@ -114,6 +118,17 @@ async function run() {
             return;
         }
 
+        let effectiveAdditionalTags = config.additionalTags;
+        if (config.stripRefsTags) {
+            effectiveAdditionalTags = config.additionalTags.map(val => {
+                if (!val.startsWith(refsTagsPrefix)) {
+                    return val;
+                }
+
+                return val.substr(refsTagsPrefix.length);
+            });
+        }
+
         core.info("Logging into Docker registry");
         dockerLogin(config);
 
@@ -132,7 +147,7 @@ async function run() {
             buildParams.push("-t", `${config.repository}:${snapshotId}`);
         }
 
-        for (const tag of config.additionalTags) {
+        for (const tag of effectiveAdditionalTags) {
             buildParams.push("-t", `${config.repository}:${tag}`);
         }
 
@@ -159,8 +174,7 @@ async function run() {
             await exec("docker", ["push", `${config.repository}:${snapshotId}`]);
         }
 
-        for (const tag of config.additionalTags) {
-            core.info(`Pushing '${config.repository}:${tag}' to registry...`);
+        for (const tag of effectiveAdditionalTags) {
             await exec("docker", ["push", `${config.repository}:${tag}`]);
         }
     } catch (error) {

@@ -35,6 +35,10 @@ inputs:
   additional-tags:
     description: Comma-separated list of tags to apply to the container image
     required: false
+  strip-refs-tags:
+    description: Whether or not to strip a leading "refs/tags/" from values in additional-tags
+    required: false
+    default: 'true'
 runs:
   using: 'node12'
   main: 'lib/main.js'
