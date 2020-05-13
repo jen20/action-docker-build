@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/jen20/action-docker-build.git"
+    "url": "git+ssh://git@github.com/jaxxstorm/action-docker-build.git"
   },
   "author": "James Nugent",
   "license": "MPL-2.0",
