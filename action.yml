@@ -39,6 +39,9 @@ inputs:
     description: Whether or not to strip a leading "refs/tags/" from values in additional-tags
     required: false
     default: 'true'
+  build-args:
+    description: Comma-separated list of build args in the format ARG=value
+    require: false
 runs:
   using: 'node12'
   main: 'lib/main.js'
