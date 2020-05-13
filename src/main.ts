@@ -70,7 +70,7 @@ function readAndValidateConfig(): Config | undefined {
         buildArgs: core.getInput("build-args")
             .split(",")
             .map(x => x.trim())
-            .filter(x => isNullOrWhitespace(x)),
+            .filter(x => !isNullOrWhitespace(x)),
         stripRefsTags: core.getInput("strip-refs-tags") != "false",
     };
 
@@ -156,10 +156,8 @@ async function run() {
             buildParams.push("-t", `${config.repository}:${tag}`);
         }
 
-        if (! config.buildArgs.length) {
-            for (const arg of config.buildArgs) {
-                buildParams.push("--build-arg", `${arg}`)
-            }
+        for (const arg of config.buildArgs) {
+            buildParams.push("--build-arg", `${arg}`)
         }
 
         const env = {};
