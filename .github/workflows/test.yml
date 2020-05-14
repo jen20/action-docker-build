@@ -57,3 +57,20 @@ jobs:
           username: jen20
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           tag-latest: true
+  
+  test-build-args:
+    name: Test with build args
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - run: npm ci
+      - run: npm run build
+      - uses: ./
+        with:
+          dockerfile: testdata/Dockerfile.buildargs
+          build-args: FOO=bar
+          repository: jen20/test-action-docker-build-additional-tags
+          username: jen20
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          tag-latest: true
