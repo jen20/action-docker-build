@@ -1,3 +1,6 @@
+**This repository is no longer maintained. An active fork is available at https://github.com/pulumi/action-docker-build, which should be used instead.**
+
+
 # Docker Image Builder for GitHub Actions
 
 This repository contains a GitHub Action to build, tag and push a Docker image based on a `Dockerfile`.
